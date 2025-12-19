@@ -10,7 +10,7 @@ import {Task, Tasks} from "./interfaces.ts";
 
 
 export const App = () => {
-    const { channel } = useTime();
+    const { channel, showTasks } = useTime();
     const [ tasks, setTasks] = useState<Tasks[]>([]);
 
     ComfyJS.onCommand = ( user, command, message, flags ) => {
@@ -80,36 +80,38 @@ export const App = () => {
         <Fragment>
             <Settings />
             <Pomodoro />
-            <div className="tasks-container">
-                <Splide style={{height: '100%'}} options={
-                    {
-                        type: 'loop',
-                        direction: 'ttb',
-                        autoplay: true,
-                        interval: 5000,
-                        pauseOnHover: false,
-                        pauseOnFocus: false,
-                        pagination: false,
-                        useScroll: false,
-                        arrows: false,
-                        height: "100%",
-                        heightRatio: 1,
-                        autoHeight: true
-                    }
-                }>
-                    {tasks.map((value) =>
-                        <SplideSlide key={"user_tasks_" + value.user}>
-                            <div className={"user-tasks"}>
-                                <div className="header">{value.user}</div>
-                                <div className="body">
-                                    {value.tasks.map((task, index) =>
-                                        <div key={value.user + "_task_" + index} style={{textDecoration: task.done ? 'line-through' : 'none'}}>{index}: {task.message}</div>
-                                    )}
+            {showTasks && (
+                <div className="tasks-container">
+                    <Splide style={{height: '100%'}} options={
+                        {
+                            type: 'loop',
+                            direction: 'ttb',
+                            autoplay: true,
+                            interval: 5000,
+                            pauseOnHover: false,
+                            pauseOnFocus: false,
+                            pagination: false,
+                            useScroll: false,
+                            arrows: false,
+                            height: "100%",
+                            heightRatio: 1,
+                            autoHeight: true
+                        }
+                    }>
+                        {tasks.map((value) =>
+                            <SplideSlide key={"user_tasks_" + value.user}>
+                                <div className={"user-tasks"}>
+                                    <div className="header">{value.user}</div>
+                                    <div className="body">
+                                        {value.tasks.map((task, index) =>
+                                            <div key={value.user + "_task_" + index} style={{textDecoration: task.done ? 'line-through' : 'none'}}>{index}: {task.message}</div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </SplideSlide>)}
-                </Splide>
-            </div>
+                            </SplideSlide>)}
+                    </Splide>
+                </div>
+            )}
         </Fragment>
     );
 }

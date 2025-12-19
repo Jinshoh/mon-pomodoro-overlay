@@ -1,49 +1,113 @@
 # Pomodoro Chat Integration for OBS
 
-This project is a Pomodoro timer application with chat integration, specifically designed for broadcasters using OBS. It enables users and broadcasters to manage and track tasks during a stream. Developed with React, Mantine, and comfy.js, this app offers seamless integration into Twitch chats and can be added as a browser source in OBS.
+This project is a modern Pomodoro timer with chat integration, specifically designed for broadcasters using OBS. It enables users and broadcasters to manage and track tasks during a stream with a sleek, animated countdown ring and customizable appearance. Developed with React, Mantine v8, and comfy.js, this app offers seamless integration into chat and can be added as a browser source in OBS.
+
+## Preview
+
+![Overlay](/assets/Pomodoro_Overlay.png)
+
+![Settings](/assets/Pomodoro_Settings.png)
+
+https://github.com/user-attachments/assets/pomodoro-countdown.mov
 
 ## Features
 
+### Timer
+- **Animated countdown ring** with smooth progress visualization
+- **Phase transitions** with pulse animations
+- **Customizable break/focus durations**
+- **Streak counter** for completed focus sessions
+- **Confetti celebration** on milestone streaks (every 5)
+
+### Customization
+- **Light/Dark mode** toggle
+- **10 accent colors** to match your stream theme
+- **Customizable texts** (Break label, Streaks label)
+- **Toggle visibility** of Break text, Streaks, and Tasks panel
+- **Export/Import settings** as JSON for backup or sharing
+
+### Twitch Chat Integration
 - **User Commands:**
-    - `!t` or `!task <title>`: Adds a new task.
-    - `!d` or `!done <index>`: Marks the task identified by its number as completed.
-    - `!rename <index> <new title>`: Renames a task.
+  - `!t` or `!task <title>` – Add a new task
+  - `!d` or `!done <index>` – Mark task as completed
+  - `!r` or `!rename <index>;<new title>` – Rename a task
 - **Broadcaster Commands:**
-    - `!tclear`: Clears all tasks and user data.
-    - `!tremove <username>`: Removes a user and their tasks from the list.
+  - `!tclear` – Clear all tasks
+  - `!tremove <username>` – Remove a user's tasks
 
-Tasks are presented in a vertical slideshow that automatically scrolls through. Broadcasters have the ability to adjust settings such as break times and work/study/focus times directly in OBS by interacting with the browser widget.
-## Installation and Usage
+### Design
+- **Transparent background** for seamless OBS integration
+- **Modern glassmorphism effects**
+- **Responsive sizing** with clamp() for different resolutions
+- **Smooth animations** on digit changes and phase transitions
 
-### Using the Hosted Application
+## Installation
 
-Simply visit [https://pomodoro.florian-chiorean.de/](https://pomodoro.florian-chiorean.de/) to use the application without needing to install or host it yourself. This is the easiest way to get started and is recommended for those who wish to use the application quickly.
+### Hosted Version (Recommended)
+
+Visit **[https://pomodoro.florian-chiorean.de/](https://pomodoro.florian-chiorean.de/)** – no installation required.
 
 ### Self-Hosting
 
-1. Clone the repository to your local machine.
-2. Run `npm install` to install dependencies.
+```bash
+# Clone the repository
+git clone https://github.com/unfloned/pomodoro-twitch-overlay.git
+cd pomodoro-twitch-overlay
 
-### Configuring OBS
+# Install dependencies
+npm install
 
-3. Regardless of the method you choose, you need to integrate the application with OBS:
-    - In OBS, add a new "Browser" source to your scene.
-    - Enter the URL of your self-hosted instance or `https://pomodoro.florian-chiorean.de` in the "URL" field.
-    - Adjust the width and height to match your stream's resolution for optimal display.
-    - With the "Browser" source selected, click on the "Interact" button in OBS. This will open a window allowing you to interact with the application directly in OBS.
-    - It is essential to enter your Twitch channel name in the settings (accessible via the icon in the bottom right corner of the application interface) to enable chat integration and commands.
+# Development
+npm run dev
 
-## Development and Deployment
+# Production build
+npm run build
+```
 
-Developers can enhance the code and deploy the project using the provided Dockerfile. Use the commands from the `package.json`:
-- `npm run dev` to start the development server.
-- `npm run build` to build the project for production.
-- `npm run lint` to run ESLint for code analysis.
+### Docker
 
-## Screenshots
+```bash
+docker build -t pomodoro-overlay .
+docker run -p 80:80 pomodoro-overlay
+```
 
-![Screen 01](/screenshots/screen01.png)
-![Screen 02](/screenshots/screen02.png)
-![Screen 03](/screenshots/screen03.png)
+## OBS Setup
 
-I hope this tool enhances your streaming workflow and look forward to contributions for further development!
+1. Add a new **Browser Source** to your scene
+2. Enter the URL: `https://pomodoro.florian-chiorean.de` (or your self-hosted URL)
+3. Set dimensions to match your stream resolution (e.g., 1920x1080)
+4. Click **Interact** to access settings
+5. Enter your **Twitch channel name** in settings to enable chat commands
+
+## Settings
+
+Access settings via the gear icon in the bottom right corner:
+
+| Setting | Description |
+|---------|-------------|
+| **Appearance** | Toggle between Light and Dark mode |
+| **Accent Color** | Choose from 10 color presets |
+| **Break Duration** | Time in seconds for break phase |
+| **Focus Duration** | Time in seconds for focus phase |
+| **Break Text** | Customize or hide the "BREAK" label |
+| **Streaks Label** | Customize or hide the streaks counter |
+| **Tasks Panel** | Show/hide the left-side task list |
+| **Twitch Channel** | Your channel name for chat integration |
+| **Export/Import** | Backup and restore all settings |
+
+## Tech Stack
+
+- **React 19** + TypeScript
+- **Mantine v8** UI components
+- **Vite** build tool
+- **comfy.js** Twitch chat integration
+- **canvas-confetti** celebrations
+- **Splide.js** task carousel
+
+## License
+
+MIT
+
+---
+
+Built with focus in mind.

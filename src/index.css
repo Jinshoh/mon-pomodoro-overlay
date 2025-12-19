@@ -1,72 +1,408 @@
+/* Modern Pomodoro Overlay Styles */
+
+:root {
+    /* Accent color (customizable) */
+    --accent-color: #6366f1;
+
+    /* Light mode colors */
+    --timer-minutes: var(--accent-color);
+    --timer-seconds: #64748b;
+    --timer-streaks: #7c3aed;
+    --break-text: #dc2626;
+    --break-glow: rgba(220, 38, 38, 0.3);
+
+    --task-gradient-start: color-mix(in srgb, var(--accent-color) 85%, transparent);
+    --task-gradient-end: transparent;
+    --task-header-bg: linear-gradient(135deg, var(--accent-color) 0%, #8b5cf6 100%);
+    --task-body-bg: rgba(255, 255, 255, 0.92);
+    --task-body-text: #1e293b;
+    --task-done: #94a3b8;
+
+    --text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    --glow-shadow: 0 0 40px color-mix(in srgb, var(--accent-color) 30%, transparent);
+}
+
+[data-mantine-color-scheme="dark"] {
+    /* Dark mode colors */
+    --timer-minutes: var(--accent-color);
+    --timer-seconds: #94a3b8;
+    --timer-streaks: #a78bfa;
+    --break-text: #f87171;
+    --break-glow: rgba(248, 113, 113, 0.4);
+
+    --task-gradient-start: color-mix(in srgb, var(--accent-color) 75%, transparent);
+    --task-gradient-end: transparent;
+    --task-header-bg: linear-gradient(135deg, var(--accent-color) 0%, #8b5cf6 100%);
+    --task-body-bg: rgba(30, 41, 59, 0.92);
+    --task-body-text: #f1f5f9;
+    --task-done: #64748b;
+
+    --text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+    --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --glow-shadow: 0 0 60px color-mix(in srgb, var(--accent-color) 40%, transparent);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+/* Force transparent background for OBS Browser Source */
+html,
+body,
+#root,
+.mantine-provider {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
 body {
     margin: 0;
     padding: 0;
-    font-family: "Helvetica", sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
+/* Timer Container */
 .pomodoro-container {
     position: absolute;
-    top: 50px;
-    right: 100px;
-    color: white;
-    font-size: 190px;
+    top: 40px;
+    right: 60px;
     text-align: right;
-    line-height: 1;
+    line-height: 0.9;
+    filter: drop-shadow(var(--text-shadow));
 }
 
+.pomodoro-container > .minutes {
+    font-size: clamp(120px, 15vw, 200px);
+    font-weight: 700;
+    color: var(--timer-minutes);
+    letter-spacing: -0.02em;
+    text-shadow: var(--glow-shadow);
+}
+
+.pomodoro-container > .seconds {
+    font-size: clamp(120px, 15vw, 200px);
+    font-weight: 300;
+    color: var(--timer-seconds);
+    letter-spacing: -0.02em;
+}
+
+.pomodoro-container > .streaks {
+    margin-top: 16px;
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 600;
+    color: var(--timer-streaks);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+/* Break/Pause Container */
 .pause-container {
     position: absolute;
-    top: 50px;
-    left: 0;
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    flex: fit-content;
-    justify-content: center;
-    text-shadow: 0 0 16px black;
-    font-size: 180px;
-    color: white;
-}
-.pomodoro-container > .minutes {
-    color: #43a7ee;
-}
-.pomodoro-container > .seconds {
-    color: #adadad;
-}
-.pomodoro-container > .seconds {
-    color: #adadad;
-}
-.pomodoro-container > .streaks {
-    color: #6743ee;
-    font-size: 50px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: clamp(100px, 18vw, 220px);
+    font-weight: 800;
+    color: var(--break-text);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-shadow:
+        0 0 40px var(--break-glow),
+        0 0 80px var(--break-glow),
+        0 4px 20px rgba(0, 0, 0, 0.3);
+    animation: pulse 2s ease-in-out infinite;
 }
 
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 0.85;
+        transform: translate(-50%, -50%) scale(1.02);
+    }
+}
+
+/* Tasks Container */
 .tasks-container {
     position: absolute;
     top: 0;
     left: 0;
-    min-width: 500px;
-    max-width: 700px;
+    min-width: 400px;
+    max-width: 600px;
+    width: 30vw;
     height: 100vh;
-    padding: 20px;
-    background: rgb(51,46,131);
-    background: linear-gradient(90deg, rgba(51,46,131,0.7959558823529411) 0%, rgba(51,46,131,0) 100%);
+    padding: 32px;
+    background: linear-gradient(
+        100deg,
+        var(--task-gradient-start) 0%,
+        var(--task-gradient-end) 100%
+    );
+    backdrop-filter: blur(20px);
 }
 
+/* User Task Cards */
 .user-tasks {
-    font-size: 50px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+
+.user-tasks:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        var(--card-shadow),
+        var(--glow-shadow);
+}
+
 .user-tasks > .header {
+    padding: 16px 24px;
+    font-size: clamp(24px, 3vw, 40px);
+    font-weight: 700;
     text-align: center;
-    border-top-left-radius: 50px;
-    border-top-right-radius: 50px;
     color: white;
-    background-color: rgb(103, 67, 238);
+    background: var(--task-header-bg);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0.01em;
 }
+
 .user-tasks > .body {
-    padding: 10px 10px 30px;
-    border-bottom-left-radius: 50px;
-    border-bottom-right-radius: 50px;
-    background-color: rgba(255, 255, 255, 0.85);
+    padding: 20px 24px 28px;
+    font-size: clamp(18px, 2.5vw, 32px);
+    font-weight: 500;
+    color: var(--task-body-text);
+    background: var(--task-body-bg);
+    backdrop-filter: blur(10px);
+    line-height: 1.5;
+}
+
+.user-tasks > .body > div {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    transition: opacity 0.2s ease;
+}
+
+.user-tasks > .body > div:last-child {
+    border-bottom: none;
+}
+
+/* Task done state is handled inline but we can add enhancement */
+.user-tasks > .body > div[style*="line-through"] {
+    opacity: 0.6;
+    color: var(--task-done);
+}
+
+/* Splide Customization */
+.splide {
+    height: 100% !important;
+}
+
+.splide__track {
+    height: 100% !important;
+}
+
+.splide__list {
+    height: 100% !important;
+}
+
+.splide__slide {
+    display: flex;
+    align-items: flex-start;
+    padding-top: 20px;
+}
+
+/* Countdown Ring */
+.countdown-ring-container {
+    position: absolute;
+    top: 30px;
+    right: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Extra padding for glow effect */
+    padding: 40px;
+    margin: -40px;
+}
+
+.countdown-ring {
+    position: relative;
+    width: clamp(200px, 25vw, 320px);
+    height: clamp(200px, 25vw, 320px);
+    /* Allow glow to overflow */
+    overflow: visible;
+}
+
+.countdown-ring svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.countdown-ring .ring-bg {
+    fill: none;
+    stroke: var(--ring-bg, rgba(148, 163, 184, 0.2));
+    stroke-width: 8;
+}
+
+.countdown-ring .ring-progress {
+    fill: none;
+    stroke: var(--timer-minutes);
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
+    filter: drop-shadow(0 0 8px var(--timer-minutes)) drop-shadow(0 0 16px color-mix(in srgb, var(--timer-minutes) 50%, transparent));
+}
+
+.countdown-ring .ring-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.countdown-ring .time-display {
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 700;
+    color: var(--timer-minutes);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.countdown-ring .time-display .digit {
+    display: inline-block;
+    min-width: 0.55em;
+    text-align: center;
+}
+
+.countdown-ring .time-display .digit.changing {
+    animation: digitChange 0.3s ease-out;
+}
+
+@keyframes digitChange {
+    0% {
+        transform: translateY(-15%) scale(1.05);
+        opacity: 0.6;
+    }
+    50% {
+        transform: translateY(3%);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.countdown-ring .time-display .seconds {
+    display: inline-flex;
+    flex-direction: row;
+    font-weight: 300;
+    color: var(--timer-seconds);
+    transition: color 0.3s ease, font-weight 0.3s ease;
+}
+
+/* When minutes are 00, highlight seconds */
+.countdown-ring .time-display.seconds-focus {
+    color: var(--timer-seconds);
+}
+
+.countdown-ring .time-display.seconds-focus .seconds {
+    color: var(--timer-minutes);
+    font-weight: 700;
+}
+
+/* Also handle break state with seconds focus */
+.countdown-ring.break-active .time-display.seconds-focus .seconds {
+    color: var(--break-text);
+}
+
+.countdown-ring .streaks-display {
+    margin-top: 8px;
+    font-size: clamp(14px, 2vw, 22px);
+    font-weight: 600;
+    color: var(--timer-streaks);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Break state for ring */
+.countdown-ring.break-active .ring-progress {
+    stroke: var(--break-text);
+    filter: drop-shadow(0 0 8px var(--break-text)) drop-shadow(0 0 16px var(--break-glow));
+}
+
+.countdown-ring.break-active .time-display {
+    color: var(--break-text);
+}
+
+/* Phase transition animation */
+.countdown-ring.phase-change {
+    animation: ringPulse 0.6s ease-out;
+}
+
+.countdown-ring.phase-change .ring-content {
+    animation: contentPulse 0.6s ease-out;
+}
+
+@keyframes ringPulse {
+    0% {
+        transform: scale(1);
+    }
+    30% {
+        transform: scale(1.12);
+    }
+    60% {
+        transform: scale(0.98);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes contentPulse {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.7;
+    }
+    30% {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 1;
+    }
+    60% {
+        transform: translate(-50%, -50%) scale(0.98);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
 }
