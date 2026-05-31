@@ -7,11 +7,14 @@ import '@splidejs/react-splide/css';
 import {Settings} from "./components/settings.tsx";
 import {useTime} from "./provider/pomodoro.tsx";
 import {Task, Tasks} from "./interfaces.ts";
+import {TabletView} from "./components/TabletView.tsx";
 
 
 export const App = () => {
     const { channel, showTasks } = useTime();
     const [ tasks, setTasks] = useState<Tasks[]>([]);
+    
+    const isTabletView = new URLSearchParams(window.location.search).get('view') === 'tablet';
 
     ComfyJS.onCommand = ( user, command, message, flags ) => {
         if( flags.broadcaster && command === "tclear" ) {
@@ -75,6 +78,10 @@ export const App = () => {
 
         return () => ComfyJS.Disconnect();
     }, [channel]);
+
+    if (isTabletView) {
+        return <TabletView />;
+    }
 
     return (
         <Fragment>

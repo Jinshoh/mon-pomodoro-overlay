@@ -1,7 +1,8 @@
 import {Fragment, useEffect, useState, useRef} from "react";
-import { IconPlayerPlayFilled } from "@tabler/icons-react";
+import { IconPlayerPlayFilled, IconPlayerPauseFilled } from "@tabler/icons-react";
 import {useTime} from "../provider/pomodoro.tsx";
 import confetti from "canvas-confetti";
+import Peer, { DataConnection } from "peerjs";
 
 function formatSecondsAsTime(seconds: number) {
     const mins: number = Math.floor(seconds / 60);
@@ -65,8 +66,8 @@ const AnimatedDigit = ({ digit, digitKey }: { digit: string, digitKey: string })
     );
 };
 
-export const Pomodoro = () => {
-    const { workTime, pauseTime, breakText, showBreakText, streaksText, showStreaks, transitionSound } = useTime();
+export const Pomodoro = ({ isTablet = false }: { isTablet?: boolean }) => {
+    const { workTime, pauseTime, breakText, showBreakText, streaksText, showStreaks, transitionSound, channel } = useTime();
     const [ isRunning, setIsRunning ] = useState(false);
     const [ countDown, setCountDown ] = useState(0);
     const [ isPause, setIsPause ] = useState(false);
@@ -74,6 +75,7 @@ export const Pomodoro = () => {
     const [ phaseChange, setPhaseChange ] = useState(false);
     const prevStreaksRef = useRef(0);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const [conn, setConn] = useState<DataConnection | null>(null);
 
     // Initialize audio
     useEffect(() => {
@@ -136,6 +138,75 @@ export const Pomodoro = () => {
         return () => clearInterval(timerId);
     }, [countDown, isRunning, isPause, streaks, pauseTime, workTime]);
 
+    // PeerJS Synchronization
+    useEffect(() => {
+        if (!channel) return;
+
+        const peerId = isTablet 
+            ? `unfloned-pomodoro-tablet-${channel.toLowerCase()}` 
+            : `unfloned-pomodoro-obs-${channel.toLowerCase()}`;
+            
+        const newPeer = new Peer(peerId);
+
+        newPeer.on('open', (id) => {
+            console.log('Peer connected with ID: ' + id);
+            
+            if (isTablet) {
+                const tryConnect = () => {
+                    const connection = newPeer.connect(`unfloned-pomodoro-obs-${channel.toLowerCase()}`);
+                    connection.on('open', () => {
+                        console.log("Tablet connected to OBS!");
+                        setConn(connection);
+                        // Send current state to sync newly connected OBS
+                        connection.send({ type: 'SYNC', countDown, isPause, isRunning });
+                    });
+                };
+                tryConnect();
+            }
+        });
+
+        if (!isTablet) {
+            newPeer.on('connection', (connection) => {
+                console.log("OBS received connection from Tablet!");
+                connection.on('data', (data: any) => {
+                    if (data.type === 'START') {
+                        setIsRunning(true);
+                    } else if (data.type === 'PAUSE') {
+                        setIsRunning(false);
+                    } else if (data.type === 'SYNC') {
+                        setCountDown(data.countDown);
+                        setIsPause(data.isPause);
+                        setIsRunning(data.isRunning);
+                    }
+                });
+            });
+        }
+
+        return () => {
+            newPeer.destroy();
+        };
+    }, [channel, isTablet]); // Minimal dependencies for connection
+
+    // Send periodic syncs from tablet to ensure both timers are identical
+    useEffect(() => {
+        if (isTablet && conn && isRunning) {
+            const syncInterval = setInterval(() => {
+                conn.send({ type: 'SYNC', countDown, isPause, isRunning });
+            }, 5000);
+            return () => clearInterval(syncInterval);
+        }
+    }, [isTablet, conn, isRunning, countDown, isPause]);
+
+    const handleStart = () => {
+        setIsRunning(true);
+        if (conn) conn.send({ type: 'START' });
+    };
+
+    const handlePause = () => {
+        setIsRunning(false);
+        if (conn) conn.send({ type: 'PAUSE' });
+    };
+
     // Track streak changes for confetti
     useEffect(() => {
         prevStreaksRef.current = streaks;
@@ -180,9 +251,9 @@ export const Pomodoro = () => {
                                 {streaksText}: {streaks}
                             </div>
                         )}
-                        {!isRunning && (
+                        {!isRunning ? (
                             <button 
-                                onClick={() => setIsRunning(true)}
+                                onClick={handleStart}
                                 style={{
                                     background: 'var(--task-header-bg)',
                                     border: 'none',
@@ -204,6 +275,32 @@ export const Pomodoro = () => {
                                 onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
                             >
                                 <IconPlayerPlayFilled size={24} />
+                            </button>
+                        ) : isTablet && (
+                            <button 
+                                onClick={handlePause}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    width: '50px',
+                                    height: '50px',
+                                    cursor: 'pointer',
+                                    color: 'white',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    marginTop: '20px',
+                                    marginLeft: 'auto',
+                                    marginRight: 'auto',
+                                    boxShadow: 'var(--card-shadow)',
+                                    transition: 'transform 0.2s ease',
+                                    backdropFilter: 'blur(10px)',
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                                <IconPlayerPauseFilled size={24} />
                             </button>
                         )}
                     </div>
