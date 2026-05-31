@@ -11,10 +11,10 @@ import {TabletView} from "./components/TabletView.tsx";
 
 
 export const App = () => {
-    const { channel, showTasks } = useTime();
+    const { channel, showTasks, isTabletMode } = useTime();
     const [ tasks, setTasks] = useState<Tasks[]>([]);
     
-    const isTabletView = new URLSearchParams(window.location.search).get('view') === 'tablet';
+    const isTabletView = isTabletMode || new URLSearchParams(window.location.search).get('view') === 'tablet';
 
     ComfyJS.onCommand = ( user, command, message, flags ) => {
         if( flags.broadcaster && command === "tclear" ) {

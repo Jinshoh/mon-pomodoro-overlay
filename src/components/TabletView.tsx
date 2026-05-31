@@ -1,12 +1,14 @@
 
 import { Pomodoro } from "./pomodoro.tsx";
 import { useTime } from "../provider/pomodoro.tsx";
+import { Settings } from "./settings.tsx";
 
 export const TabletView = () => {
     const { channel } = useTime();
 
     return (
         <div className="tablet-layout">
+            <Settings />
             <div className="tablet-left">
                 <Pomodoro isTablet={true} />
             </div>

@@ -55,7 +55,8 @@ export const Settings = () => {
         streaksText, setStreaksText,
         showStreaks, setShowStreaks,
         showTasks, setShowTasks,
-        transitionSound, setTransitionSound
+        transitionSound, setTransitionSound,
+        isTabletMode, setIsTabletMode
     } = useTime();
     const { colorScheme, setColorScheme } = useMantineColorScheme();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -90,7 +91,8 @@ export const Settings = () => {
             streaksText,
             showStreaks,
             showTasks,
-            transitionSound
+            transitionSound,
+            isTabletMode
         };
 
         const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
@@ -152,6 +154,10 @@ export const Settings = () => {
                 if (settings.transitionSound) {
                     setTransitionSound(settings.transitionSound);
                     localStorage.setItem('transitionSound', settings.transitionSound);
+                }
+                if (settings.isTabletMode !== undefined) {
+                    setIsTabletMode(settings.isTabletMode);
+                    localStorage.setItem('isTabletMode', String(settings.isTabletMode));
                 }
             } catch (err) {
                 console.error('Failed to import settings:', err);
@@ -380,6 +386,16 @@ export const Settings = () => {
                                 }}
                                 label="Show tasks panel"
                                 description="Display the task list on the left side"
+                            />
+
+                            <Switch
+                                checked={isTabletMode}
+                                onChange={(e) => {
+                                    setIsTabletMode(e.currentTarget.checked);
+                                    localStorage.setItem('isTabletMode', String(e.currentTarget.checked));
+                                }}
+                                label="Tablet Mode"
+                                description="Switch layout to Tablet Mode (side-by-side with Twitch chat)"
                             />
                         </Stack>
                     </Box>

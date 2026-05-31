@@ -21,6 +21,8 @@ interface TimeContextType {
     setShowTasks: (value: boolean) => void;
     transitionSound: string;
     setTransitionSound: (value: string) => void;
+    isTabletMode: boolean;
+    setIsTabletMode: (value: boolean) => void;
 }
 
 const TimeContext = createContext<TimeContextType | undefined>(undefined);
@@ -46,6 +48,7 @@ const TimeProvider: FunctionComponent<{children: ReactNode}> = ({ children }) =>
     const [showStreaks, setShowStreaks] = useState(parseBooleanCookie('showStreaks', true));
     const [showTasks, setShowTasks] = useState(parseBooleanCookie('showTasks', true));
     const [transitionSound, setTransitionSound] = useState(localStorage.getItem('transitionSound') || "/transition.ogg");
+    const [isTabletMode, setIsTabletMode] = useState(parseBooleanCookie('isTabletMode', false));
 
     return (
         <TimeContext.Provider value={{
@@ -68,7 +71,9 @@ const TimeProvider: FunctionComponent<{children: ReactNode}> = ({ children }) =>
             showTasks,
             setShowTasks,
             transitionSound,
-            setTransitionSound
+            setTransitionSound,
+            isTabletMode,
+            setIsTabletMode
         }}>
             {children}
         </TimeContext.Provider>
