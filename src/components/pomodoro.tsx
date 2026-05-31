@@ -2,7 +2,7 @@ import {Fragment, useEffect, useState, useRef} from "react";
 import { IconPlayerPlayFilled, IconPlayerPauseFilled } from "@tabler/icons-react";
 import {useTime} from "../provider/pomodoro.tsx";
 import confetti from "canvas-confetti";
-import Peer, { DataConnection } from "peerjs";
+import mqtt, { MqttClient } from "mqtt";
 
 function formatSecondsAsTime(seconds: number) {
     const mins: number = Math.floor(seconds / 60);
@@ -75,7 +75,7 @@ export const Pomodoro = ({ isTablet = false }: { isTablet?: boolean }) => {
     const [ phaseChange, setPhaseChange ] = useState(false);
     const prevStreaksRef = useRef(0);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [conn, setConn] = useState<DataConnection | null>(null);
+    const [client, setClient] = useState<MqttClient | null>(null);
 
     // Initialize audio
     useEffect(() => {
@@ -138,112 +138,91 @@ export const Pomodoro = ({ isTablet = false }: { isTablet?: boolean }) => {
         return () => clearInterval(timerId);
     }, [countDown, isRunning, isPause, streaks, pauseTime, workTime]);
 
-    // PeerJS Synchronization (OBS is Master, Tablet is Slave)
+    // MQTT Synchronization (OBS is Master, Tablet is Slave)
     useEffect(() => {
         if (!channel) return;
 
-        // Tablet needs a unique ID so it doesn't clash if multiple tablets connect
-        const peerId = isTablet 
-            ? `unfloned-pomodoro-tablet-${channel.toLowerCase()}-${Math.random().toString(36).substring(2, 7)}` 
-            : `unfloned-pomodoro-obs-${channel.toLowerCase()}`;
-            
-        const newPeer = new Peer(peerId);
-        let retryTimeout: ReturnType<typeof setTimeout>;
+        const baseTopic = `unfloned/pomodoro/${channel.toLowerCase()}`;
+        const syncTopic = `${baseTopic}/sync`;
+        const cmdTopic = `${baseTopic}/command`;
 
-        newPeer.on('open', (id) => {
-            console.log('Peer connected with ID: ' + id);
-            
+        // Connect to the public test MQTT broker over WebSocket Secure
+        const mqttClient = mqtt.connect('wss://test.mosquitto.org:8081/mqtt');
+
+        mqttClient.on('connect', () => {
+            console.log('Connected to MQTT Broker');
+            setClient(mqttClient);
+
             if (isTablet) {
-                const connectToOBS = () => {
-                    console.log("Attempting to connect to OBS...");
-                    const connection = newPeer.connect(`unfloned-pomodoro-obs-${channel.toLowerCase()}`);
-                    
-                    connection.on('open', () => {
-                        console.log("Tablet connected to OBS!");
-                        setConn(connection);
-                    });
-
-                    connection.on('data', (data: any) => {
-                        if (data.type === 'SYNC') {
-                            setCountDown(data.countDown);
-                            setIsPause(data.isPause);
-                            setIsRunning(data.isRunning);
-                        }
-                    });
-
-                    connection.on('close', () => {
-                        console.log("Connection closed, retrying...");
-                        setConn(null);
-                        retryTimeout = setTimeout(connectToOBS, 3000);
-                    });
-                };
-                connectToOBS();
+                // Tablet subscribes to syncs from OBS
+                mqttClient.subscribe(syncTopic);
+            } else {
+                // OBS subscribes to commands from Tablet
+                mqttClient.subscribe(cmdTopic);
             }
         });
 
-        if (!isTablet) {
-            // OBS Mode: Listen for incoming tablet connections
-            newPeer.on('connection', (connection) => {
-                console.log("OBS received connection from Tablet!");
-                setConn(connection);
-                
-                connection.on('data', (data: any) => {
+        mqttClient.on('message', (topic, message) => {
+            try {
+                const data = JSON.parse(message.toString());
+
+                if (isTablet && topic === syncTopic) {
+                    if (data.type === 'SYNC') {
+                        setCountDown(data.countDown);
+                        setIsPause(data.isPause);
+                        setIsRunning(data.isRunning);
+                    }
+                } else if (!isTablet && topic === cmdTopic) {
                     if (data.type === 'START') {
                         setIsRunning(true);
                     } else if (data.type === 'PAUSE') {
                         setIsRunning(false);
                     }
-                });
-            });
-        }
-
-        newPeer.on('error', (err) => {
-            console.error('Peer error:', err);
-            if (isTablet && err.type === 'peer-unavailable') {
-                // OBS not ready yet, retry in 3s
-                retryTimeout = setTimeout(() => {
-                    const connection = newPeer.connect(`unfloned-pomodoro-obs-${channel.toLowerCase()}`);
-                    connection.on('open', () => setConn(connection));
-                    connection.on('data', (data: any) => {
-                        if (data.type === 'SYNC') {
-                            setCountDown(data.countDown);
-                            setIsPause(data.isPause);
-                            setIsRunning(data.isRunning);
-                        }
-                    });
-                }, 3000);
+                }
+            } catch (err) {
+                console.error("Failed to parse MQTT message", err);
             }
         });
 
+        mqttClient.on('error', (err) => {
+            console.error('MQTT error:', err);
+        });
+
         return () => {
-            clearTimeout(retryTimeout);
-            newPeer.destroy();
+            mqttClient.end();
         };
     }, [channel, isTablet]);
 
     // Send periodic syncs from OBS (Master) to Tablet (Slave)
     useEffect(() => {
-        if (!isTablet && conn) {
+        if (!isTablet && client) {
+            const syncTopic = `unfloned/pomodoro/${channel.toLowerCase()}/sync`;
+            const payload = JSON.stringify({ type: 'SYNC', countDown, isPause, isRunning });
+            
             // Send immediately when state changes
-            conn.send({ type: 'SYNC', countDown, isPause, isRunning });
+            client.publish(syncTopic, payload);
             
             // And periodically to prevent drift
             const syncInterval = setInterval(() => {
-                conn.send({ type: 'SYNC', countDown, isPause, isRunning });
+                client.publish(syncTopic, payload);
             }, 2000);
             
             return () => clearInterval(syncInterval);
         }
-    }, [isTablet, conn, isRunning, countDown, isPause]);
+    }, [isTablet, client, isRunning, countDown, isPause, channel]);
 
     const handleStart = () => {
         setIsRunning(true);
-        if (conn) conn.send({ type: 'START' });
+        if (client && isTablet) {
+            client.publish(`unfloned/pomodoro/${channel.toLowerCase()}/command`, JSON.stringify({ type: 'START' }));
+        }
     };
 
     const handlePause = () => {
         setIsRunning(false);
-        if (conn) conn.send({ type: 'PAUSE' });
+        if (client && isTablet) {
+            client.publish(`unfloned/pomodoro/${channel.toLowerCase()}/command`, JSON.stringify({ type: 'PAUSE' }));
+        }
     };
 
     // Track streak changes for confetti
