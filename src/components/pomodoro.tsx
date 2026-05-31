@@ -146,8 +146,8 @@ export const Pomodoro = ({ isTablet = false }: { isTablet?: boolean }) => {
         const syncTopic = `${baseTopic}/sync`;
         const cmdTopic = `${baseTopic}/command`;
 
-        // Connect to the public test MQTT broker over WebSocket Secure
-        const mqttClient = mqtt.connect('wss://test.mosquitto.org:8081/mqtt');
+        // Connect to the public EMQX MQTT broker over WebSocket Secure
+        const mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
 
         mqttClient.on('connect', () => {
             console.log('Connected to MQTT Broker');
