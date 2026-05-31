@@ -138,61 +138,100 @@ export const Pomodoro = ({ isTablet = false }: { isTablet?: boolean }) => {
         return () => clearInterval(timerId);
     }, [countDown, isRunning, isPause, streaks, pauseTime, workTime]);
 
-    // PeerJS Synchronization
+    // PeerJS Synchronization (OBS is Master, Tablet is Slave)
     useEffect(() => {
         if (!channel) return;
 
+        // Tablet needs a unique ID so it doesn't clash if multiple tablets connect
         const peerId = isTablet 
-            ? `unfloned-pomodoro-tablet-${channel.toLowerCase()}` 
+            ? `unfloned-pomodoro-tablet-${channel.toLowerCase()}-${Math.random().toString(36).substring(2, 7)}` 
             : `unfloned-pomodoro-obs-${channel.toLowerCase()}`;
             
         const newPeer = new Peer(peerId);
+        let retryTimeout: NodeJS.Timeout;
 
         newPeer.on('open', (id) => {
             console.log('Peer connected with ID: ' + id);
             
             if (isTablet) {
-                const tryConnect = () => {
+                const connectToOBS = () => {
+                    console.log("Attempting to connect to OBS...");
                     const connection = newPeer.connect(`unfloned-pomodoro-obs-${channel.toLowerCase()}`);
+                    
                     connection.on('open', () => {
                         console.log("Tablet connected to OBS!");
                         setConn(connection);
-                        // Send current state to sync newly connected OBS
-                        connection.send({ type: 'SYNC', countDown, isPause, isRunning });
+                    });
+
+                    connection.on('data', (data: any) => {
+                        if (data.type === 'SYNC') {
+                            setCountDown(data.countDown);
+                            setIsPause(data.isPause);
+                            setIsRunning(data.isRunning);
+                        }
+                    });
+
+                    connection.on('close', () => {
+                        console.log("Connection closed, retrying...");
+                        setConn(null);
+                        retryTimeout = setTimeout(connectToOBS, 3000);
                     });
                 };
-                tryConnect();
+                connectToOBS();
             }
         });
 
         if (!isTablet) {
+            // OBS Mode: Listen for incoming tablet connections
             newPeer.on('connection', (connection) => {
                 console.log("OBS received connection from Tablet!");
+                setConn(connection);
+                
                 connection.on('data', (data: any) => {
                     if (data.type === 'START') {
                         setIsRunning(true);
                     } else if (data.type === 'PAUSE') {
                         setIsRunning(false);
-                    } else if (data.type === 'SYNC') {
-                        setCountDown(data.countDown);
-                        setIsPause(data.isPause);
-                        setIsRunning(data.isRunning);
                     }
                 });
             });
         }
 
+        newPeer.on('error', (err) => {
+            console.error('Peer error:', err);
+            if (isTablet && err.type === 'peer-unavailable') {
+                // OBS not ready yet, retry in 3s
+                retryTimeout = setTimeout(() => {
+                    const connection = newPeer.connect(`unfloned-pomodoro-obs-${channel.toLowerCase()}`);
+                    connection.on('open', () => setConn(connection));
+                    connection.on('data', (data: any) => {
+                        if (data.type === 'SYNC') {
+                            setCountDown(data.countDown);
+                            setIsPause(data.isPause);
+                            setIsRunning(data.isRunning);
+                        }
+                    });
+                }, 3000);
+            }
+        });
+
         return () => {
+            clearTimeout(retryTimeout);
             newPeer.destroy();
         };
-    }, [channel, isTablet]); // Minimal dependencies for connection
+    }, [channel, isTablet]);
 
-    // Send periodic syncs from tablet to ensure both timers are identical
+    // Send periodic syncs from OBS (Master) to Tablet (Slave)
     useEffect(() => {
-        if (isTablet && conn && isRunning) {
+        if (!isTablet && conn) {
+            // Send immediately when state changes
+            conn.send({ type: 'SYNC', countDown, isPause, isRunning });
+            
+            // And periodically to prevent drift
             const syncInterval = setInterval(() => {
                 conn.send({ type: 'SYNC', countDown, isPause, isRunning });
-            }, 5000);
+            }, 2000);
+            
             return () => clearInterval(syncInterval);
         }
     }, [isTablet, conn, isRunning, countDown, isPause]);
