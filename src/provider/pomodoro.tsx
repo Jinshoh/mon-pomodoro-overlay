@@ -19,6 +19,8 @@ interface TimeContextType {
     setShowStreaks: (value: boolean) => void;
     showTasks: boolean;
     setShowTasks: (value: boolean) => void;
+    transitionSound: string;
+    setTransitionSound: (value: string) => void;
 }
 
 const TimeContext = createContext<TimeContextType | undefined>(undefined);
@@ -43,6 +45,7 @@ const TimeProvider: FunctionComponent<{children: ReactNode}> = ({ children }) =>
     const [streaksText, setStreaksText] = useState(localStorage.getItem('streaksText') || "Streaks");
     const [showStreaks, setShowStreaks] = useState(parseBooleanCookie('showStreaks', true));
     const [showTasks, setShowTasks] = useState(parseBooleanCookie('showTasks', true));
+    const [transitionSound, setTransitionSound] = useState(localStorage.getItem('transitionSound') || "/transition.ogg");
 
     return (
         <TimeContext.Provider value={{
@@ -63,7 +66,9 @@ const TimeProvider: FunctionComponent<{children: ReactNode}> = ({ children }) =>
             showStreaks,
             setShowStreaks,
             showTasks,
-            setShowTasks
+            setShowTasks,
+            transitionSound,
+            setTransitionSound
         }}>
             {children}
         </TimeContext.Provider>

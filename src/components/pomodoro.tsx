@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState, useRef} from "react";
+import { IconPlayerPlayFilled } from "@tabler/icons-react";
 import {useTime} from "../provider/pomodoro.tsx";
 import confetti from "canvas-confetti";
 
@@ -65,13 +66,27 @@ const AnimatedDigit = ({ digit, digitKey }: { digit: string, digitKey: string })
 };
 
 export const Pomodoro = () => {
-    const { workTime, pauseTime, breakText, showBreakText, streaksText, showStreaks } = useTime();
+    const { workTime, pauseTime, breakText, showBreakText, streaksText, showStreaks, transitionSound } = useTime();
+    const [ isRunning, setIsRunning ] = useState(false);
     const [ countDown, setCountDown ] = useState(0);
+    const [ isPause, setIsPause ] = useState(false);
     const [ streaks, setStreaks ] = useState(0);
-    const [ isPause, setIsPause ] = useState(true);
-    const [ firstRun, setFirstRun ] = useState(true);
     const [ phaseChange, setPhaseChange ] = useState(false);
     const prevStreaksRef = useRef(0);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Initialize audio
+    useEffect(() => {
+        audioRef.current = new Audio(transitionSound);
+        audioRef.current.volume = 0.5;
+    }, [transitionSound]);
+
+    // Set initial countdown to workTime
+    useEffect(() => {
+        if (!isRunning && countDown === 0 && workTime > 0) {
+            setCountDown(workTime);
+        }
+    }, [workTime, isRunning, countDown]);
 
     // Calculate progress for the ring (0 to 1)
     const totalTime = isPause ? pauseTime : workTime;
@@ -85,9 +100,11 @@ export const Pomodoro = () => {
     const strokeDashoffset = circumference * (1 - progress);
 
     useEffect(() => {
+        if (!isRunning) return;
+
         const timerId = setInterval(() => {
             if ( countDown <= 0 ) {
-                if ( isPause && !firstRun ) {
+                if ( !isPause ) {
                     const newStreaks = streaks + 1;
                     setStreaks(newStreaks);
 
@@ -96,14 +113,19 @@ export const Pomodoro = () => {
                         triggerConfetti();
                     }
                 }
-                if ( firstRun ) setFirstRun(false);
 
                 // Trigger phase change animation
                 setPhaseChange(true);
                 setTimeout(() => setPhaseChange(false), 600);
 
-                setIsPause(!isPause);
-                setCountDown(isPause ? pauseTime : workTime);
+                // Play sound
+                if (audioRef.current) {
+                    audioRef.current.play().catch(e => console.error("Error playing audio", e));
+                }
+
+                const nextIsPause = !isPause;
+                setIsPause(nextIsPause);
+                setCountDown(nextIsPause ? pauseTime : workTime);
 
                 return;
             }
@@ -112,7 +134,7 @@ export const Pomodoro = () => {
         }, 1000);
 
         return () => clearInterval(timerId);
-    }, [countDown]);
+    }, [countDown, isRunning, isPause, streaks, pauseTime, workTime]);
 
     // Track streak changes for confetti
     useEffect(() => {
@@ -123,10 +145,10 @@ export const Pomodoro = () => {
 
     return (
         <Fragment>
-            {!isPause && showBreakText && <div className="pause-container">{breakText}</div>}
+            {isPause && showBreakText && <div className="pause-container">{breakText}</div>}
 
             <div className="countdown-ring-container">
-                <div className={`countdown-ring ${!isPause ? 'break-active' : ''} ${phaseChange ? 'phase-change' : ''}`}>
+                <div className={`countdown-ring ${isPause ? 'break-active' : ''} ${phaseChange ? 'phase-change' : ''}`}>
                     <svg viewBox={`0 0 ${size} ${size}`}>
                         <circle
                             className="ring-bg"
@@ -157,6 +179,32 @@ export const Pomodoro = () => {
                             <div className="streaks-display">
                                 {streaksText}: {streaks}
                             </div>
+                        )}
+                        {!isRunning && (
+                            <button 
+                                onClick={() => setIsRunning(true)}
+                                style={{
+                                    background: 'var(--task-header-bg)',
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    width: '50px',
+                                    height: '50px',
+                                    cursor: 'pointer',
+                                    color: 'white',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    marginTop: '20px',
+                                    marginLeft: 'auto',
+                                    marginRight: 'auto',
+                                    boxShadow: 'var(--card-shadow)',
+                                    transition: 'transform 0.2s ease',
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                                <IconPlayerPlayFilled size={24} />
+                            </button>
                         )}
                     </div>
                 </div>

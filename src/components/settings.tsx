@@ -16,11 +16,19 @@ import {
     TextInput,
     Title,
     Tooltip,
+    ColorInput,
+    Select,
     useMantineColorScheme
 } from "@mantine/core";
 import {useDisclosure} from "@mantine/hooks";
 import {Fragment, useRef} from "react";
-import {IconAdjustments, IconCheck, IconDownload, IconMoon, IconSun, IconUpload} from "@tabler/icons-react";
+import {IconAdjustments, IconCheck, IconDownload, IconMoon, IconSun, IconUpload, IconPlayerPlay} from "@tabler/icons-react";
+
+const SOUNDS = [
+    { value: '/transition.ogg', label: 'Beep' },
+    { value: '/clock_ring.ogg', label: 'Clock Ring' },
+    { value: '/cartoon_boing.ogg', label: 'Cartoon Boing' },
+];
 
 const ACCENT_COLORS = [
     { name: 'Indigo', value: '#6366f1' },
@@ -46,10 +54,17 @@ export const Settings = () => {
         showBreakText, setShowBreakText,
         streaksText, setStreaksText,
         showStreaks, setShowStreaks,
-        showTasks, setShowTasks
+        showTasks, setShowTasks,
+        transitionSound, setTransitionSound
     } = useTime();
     const { colorScheme, setColorScheme } = useMantineColorScheme();
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const playSound = (soundUrl: string) => {
+        const audio = new Audio(soundUrl);
+        audio.volume = 0.5;
+        audio.play().catch(e => console.error("Error playing sound", e));
+    };
 
     const handleColorSchemeChange = (value: string) => {
         const scheme = value as 'light' | 'dark';
@@ -74,7 +89,8 @@ export const Settings = () => {
             showBreakText,
             streaksText,
             showStreaks,
-            showTasks
+            showTasks,
+            transitionSound
         };
 
         const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
@@ -132,6 +148,10 @@ export const Settings = () => {
                 if (settings.showTasks !== undefined) {
                     setShowTasks(settings.showTasks);
                     localStorage.setItem('showTasks', String(settings.showTasks));
+                }
+                if (settings.transitionSound) {
+                    setTransitionSound(settings.transitionSound);
+                    localStorage.setItem('transitionSound', settings.transitionSound);
                 }
             } catch (err) {
                 console.error('Failed to import settings:', err);
@@ -226,6 +246,43 @@ export const Settings = () => {
                                 </Tooltip>
                             ))}
                         </SimpleGrid>
+                        <ColorInput
+                            mt="md"
+                            placeholder="Pick color"
+                            label="Custom accent color"
+                            value={accentColor}
+                            onChange={handleAccentColorChange}
+                        />
+                    </Box>
+
+                    <Divider />
+
+                    <Box>
+                        <Text size="sm" fw={500} mb="sm">Audio</Text>
+                        <Group align="flex-end">
+                            <Select
+                                style={{ flex: 1 }}
+                                label="Transition sound"
+                                data={SOUNDS}
+                                value={transitionSound}
+                                onChange={(val) => {
+                                    if (val) {
+                                        setTransitionSound(val);
+                                        localStorage.setItem('transitionSound', val);
+                                    }
+                                }}
+                            />
+                            <ActionIcon 
+                                size="input-sm" 
+                                variant="light" 
+                                color="gray"
+                                onClick={() => playSound(transitionSound)}
+                                aria-label="Play sound"
+                                style={{ width: 36, height: 36 }}
+                            >
+                                <IconPlayerPlay size={18} />
+                            </ActionIcon>
+                        </Group>
                     </Box>
 
                     <Divider />
