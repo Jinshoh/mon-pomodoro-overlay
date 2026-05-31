@@ -148,7 +148,7 @@ export const Pomodoro = ({ isTablet = false }: { isTablet?: boolean }) => {
             : `unfloned-pomodoro-obs-${channel.toLowerCase()}`;
             
         const newPeer = new Peer(peerId);
-        let retryTimeout: NodeJS.Timeout;
+        let retryTimeout: ReturnType<typeof setTimeout>;
 
         newPeer.on('open', (id) => {
             console.log('Peer connected with ID: ' + id);
